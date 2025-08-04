@@ -13,7 +13,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: addTaskButton(),
-      body: SafeArea(child: Column(children: [Text('data')])),
+      body: SafeArea(child: Column(children: [Text('test')])),
     );
   }
 }
