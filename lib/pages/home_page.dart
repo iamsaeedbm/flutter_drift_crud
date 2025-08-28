@@ -8,7 +8,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: addTaskButton(),
-      body: SafeArea(child: Column(children: [Text('test4')])),
+      body: SafeArea(child: Column(children: [Text('test5')])),
     );
   }
 }
