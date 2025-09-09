@@ -38,7 +38,6 @@ class AppDatabase extends _$AppDatabase {
       (delete(tasks)..where((tbl) => tbl.id.equals(id))).go();
 }
 
-// ✨ بخش اصلی تغییرات اینجاست ✨
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     // اگر برنامه روی وب اجرا می‌شود
