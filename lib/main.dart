@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Simple To-Do List')),
+      appBar: AppBar(title: const Text('To-Do List')),
       body: Column(
         children: [
           // بخش افزودن وظیفه جدید
