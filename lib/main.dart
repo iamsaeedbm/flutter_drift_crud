@@ -1,10 +1,8 @@
 // file: lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter_drift_crud/database/database.dart';
-
-// یک نمونه از دیتابیس می‌سازیم تا در کل برنامه از آن استفاده کنیم
-final AppDatabase database = AppDatabase();
 
 void main() {
   runApp(const MyApp());
@@ -15,85 +13,125 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(title: 'To-Do', home: HomeScreen());
+    return MaterialApp(title: 'Money Manager', home: HomePage());
   }
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController _controller = TextEditingController();
+class _HomePageState extends State<HomePage> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _amountController = TextEditingController();
+  int _transactionType = 0; // 0 for Expense, 1 for Income
+
+  void _addTransaction() {
+    final title = _titleController.text;
+    final amount = double.tryParse(_amountController.text);
+
+    if (title.isNotEmpty && amount != null) {
+      final newTransaction = TransactionsCompanion(
+        title: drift.Value(title),
+        amount: drift.Value(amount),
+        transactionType: drift.Value(_transactionType),
+        // نیازی به دادن تاریخ نیست، خودش اتوماتیک ثبت میشه
+      );
+
+      database.addTransaction(newTransaction);
+
+      // پاک کردن فیلدها بعد از ثبت
+      _titleController.clear();
+      _amountController.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('To-Do List')),
+      appBar: AppBar(title: Text('مدیریت مالی')),
       body: Column(
         children: [
-          // بخش افزودن وظیفه جدید
+          // بخش فرم برای اضافه کردن تراکنش
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      labelText: 'New Task Title',
-                    ),
-                  ),
+                TextField(
+                  controller: _titleController,
+                  decoration: InputDecoration(labelText: 'عنوان'),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    if (_controller.text.isNotEmpty) {
-                      database.addTask(_controller.text); // CREATE
-                      _controller.clear();
-                    }
-                  },
+                TextField(
+                  controller: _amountController,
+                  decoration: InputDecoration(labelText: 'مبلغ'),
+                  keyboardType: TextInputType.number,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('هزینه'),
+                    Radio<int>(
+                      value: 0,
+                      groupValue: _transactionType,
+                      onChanged: (v) => setState(() => _transactionType = v!),
+                    ),
+                    Text('درآمد'),
+                    Radio<int>(
+                      value: 1,
+                      groupValue: _transactionType,
+                      onChanged: (v) => setState(() => _transactionType = v!),
+                    ),
+                  ],
+                ),
+                ElevatedButton(
+                  onPressed: _addTransaction,
+                  child: Text('ثبت تراکنش'),
                 ),
               ],
             ),
           ),
 
-          // بخش نمایش لیست وظایف
+          // خط جداکننده
+          Divider(),
+
+          // بخش نمایش لیست تراکنش‌ها
           Expanded(
-            child: StreamBuilder<List<Task>>(
-              stream: database.watchAllTasks(), // READ
+            child: StreamBuilder<List<Transaction>>(
+              stream: database.watchAllTransactions(),
               builder: (context, snapshot) {
-                final tasks = snapshot.data ?? [];
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('خطا: ${snapshot.error}'));
+                }
+                final transactions = snapshot.data ?? [];
+                if (transactions.isEmpty) {
+                  return Center(child: Text('هیچ تراکنشی ثبت نشده است.'));
+                }
+
                 return ListView.builder(
-                  itemCount: tasks.length,
+                  itemCount: transactions.length,
                   itemBuilder: (context, index) {
-                    final task = tasks[index];
+                    final transaction = transactions[index];
+                    final isExpense = transaction.transactionType == 0;
                     return ListTile(
-                      title: Text(
-                        task.title,
+                      leading: Icon(
+                        isExpense ? Icons.arrow_downward : Icons.arrow_upward,
+                        color: isExpense ? Colors.red : Colors.green,
+                      ),
+                      title: Text(transaction.title),
+                      subtitle: Text(
+                        '${transaction.transactionDate.toLocal()}',
+                      ),
+                      trailing: Text(
+                        '${transaction.amount} تومان',
                         style: TextStyle(
-                          decoration: task.completed
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
+                          color: isExpense ? Colors.red : Colors.green,
                         ),
-                      ),
-                      // برای تغییر وضعیت تکمیل شده
-                      leading: Checkbox(
-                        value: task.completed,
-                        onChanged: (bool? value) {
-                          final updatedTask = task.copyWith(completed: value!);
-                          database.updateTaskStatus(updatedTask); // UPDATE
-                        },
-                      ),
-                      // برای حذف کردن
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          database.deleteTask(task.id); // DELETE
-                        },
                       ),
                     );
                   },

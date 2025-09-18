@@ -3,11 +3,12 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
-class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
+class $TransactionsTable extends Transactions
+    with TableInfo<$TransactionsTable, Transaction> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $TasksTable(this.attachedDatabase, [this._alias]);
+  $TransactionsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -27,34 +28,62 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     'title',
     aliasedName,
     false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 50,
+    ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _completedMeta = const VerificationMeta(
-    'completed',
-  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
   @override
-  late final GeneratedColumn<bool> completed = GeneratedColumn<bool>(
-    'completed',
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
     aliasedName,
     false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("completed" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _transactionDateMeta = const VerificationMeta(
+    'transactionDate',
   );
   @override
-  List<GeneratedColumn> get $columns => [id, title, completed];
+  late final GeneratedColumn<DateTime> transactionDate =
+      GeneratedColumn<DateTime>(
+        'transaction_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+        clientDefault: () => DateTime.now(),
+      );
+  static const VerificationMeta _transactionTypeMeta = const VerificationMeta(
+    'transactionType',
+  );
+  @override
+  late final GeneratedColumn<int> transactionType = GeneratedColumn<int>(
+    'transaction_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    amount,
+    transactionDate,
+    transactionType,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'tasks';
+  static const String $name = 'transactions';
   @override
   VerificationContext validateIntegrity(
-    Insertable<Task> instance, {
+    Insertable<Transaction> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -70,11 +99,33 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     } else if (isInserting) {
       context.missing(_titleMeta);
     }
-    if (data.containsKey('completed')) {
+    if (data.containsKey('amount')) {
       context.handle(
-        _completedMeta,
-        completed.isAcceptableOrUnknown(data['completed']!, _completedMeta),
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
       );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('transaction_date')) {
+      context.handle(
+        _transactionDateMeta,
+        transactionDate.isAcceptableOrUnknown(
+          data['transaction_date']!,
+          _transactionDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('transaction_type')) {
+      context.handle(
+        _transactionTypeMeta,
+        transactionType.isAcceptableOrUnknown(
+          data['transaction_type']!,
+          _transactionTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_transactionTypeMeta);
     }
     return context;
   }
@@ -82,9 +133,9 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Task map(Map<String, dynamic> data, {String? tablePrefix}) {
+  Transaction map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Task(
+    return Transaction(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -93,50 +144,72 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.string,
         data['${effectivePrefix}title'],
       )!,
-      completed: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}completed'],
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      transactionDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}transaction_date'],
+      )!,
+      transactionType: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}transaction_type'],
       )!,
     );
   }
 
   @override
-  $TasksTable createAlias(String alias) {
-    return $TasksTable(attachedDatabase, alias);
+  $TransactionsTable createAlias(String alias) {
+    return $TransactionsTable(attachedDatabase, alias);
   }
 }
 
-class Task extends DataClass implements Insertable<Task> {
+class Transaction extends DataClass implements Insertable<Transaction> {
   final int id;
   final String title;
-  final bool completed;
-  const Task({required this.id, required this.title, required this.completed});
+  final double amount;
+  final DateTime transactionDate;
+  final int transactionType;
+  const Transaction({
+    required this.id,
+    required this.title,
+    required this.amount,
+    required this.transactionDate,
+    required this.transactionType,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['title'] = Variable<String>(title);
-    map['completed'] = Variable<bool>(completed);
+    map['amount'] = Variable<double>(amount);
+    map['transaction_date'] = Variable<DateTime>(transactionDate);
+    map['transaction_type'] = Variable<int>(transactionType);
     return map;
   }
 
-  TasksCompanion toCompanion(bool nullToAbsent) {
-    return TasksCompanion(
+  TransactionsCompanion toCompanion(bool nullToAbsent) {
+    return TransactionsCompanion(
       id: Value(id),
       title: Value(title),
-      completed: Value(completed),
+      amount: Value(amount),
+      transactionDate: Value(transactionDate),
+      transactionType: Value(transactionType),
     );
   }
 
-  factory Task.fromJson(
+  factory Transaction.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Task(
+    return Transaction(
       id: serializer.fromJson<int>(json['id']),
       title: serializer.fromJson<String>(json['title']),
-      completed: serializer.fromJson<bool>(json['completed']),
+      amount: serializer.fromJson<double>(json['amount']),
+      transactionDate: serializer.fromJson<DateTime>(json['transactionDate']),
+      transactionType: serializer.fromJson<int>(json['transactionType']),
     );
   }
   @override
@@ -145,79 +218,116 @@ class Task extends DataClass implements Insertable<Task> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'title': serializer.toJson<String>(title),
-      'completed': serializer.toJson<bool>(completed),
+      'amount': serializer.toJson<double>(amount),
+      'transactionDate': serializer.toJson<DateTime>(transactionDate),
+      'transactionType': serializer.toJson<int>(transactionType),
     };
   }
 
-  Task copyWith({int? id, String? title, bool? completed}) => Task(
+  Transaction copyWith({
+    int? id,
+    String? title,
+    double? amount,
+    DateTime? transactionDate,
+    int? transactionType,
+  }) => Transaction(
     id: id ?? this.id,
     title: title ?? this.title,
-    completed: completed ?? this.completed,
+    amount: amount ?? this.amount,
+    transactionDate: transactionDate ?? this.transactionDate,
+    transactionType: transactionType ?? this.transactionType,
   );
-  Task copyWithCompanion(TasksCompanion data) {
-    return Task(
+  Transaction copyWithCompanion(TransactionsCompanion data) {
+    return Transaction(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
-      completed: data.completed.present ? data.completed.value : this.completed,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      transactionDate: data.transactionDate.present
+          ? data.transactionDate.value
+          : this.transactionDate,
+      transactionType: data.transactionType.present
+          ? data.transactionType.value
+          : this.transactionType,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('Task(')
+    return (StringBuffer('Transaction(')
           ..write('id: $id, ')
           ..write('title: $title, ')
-          ..write('completed: $completed')
+          ..write('amount: $amount, ')
+          ..write('transactionDate: $transactionDate, ')
+          ..write('transactionType: $transactionType')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, title, completed);
+  int get hashCode =>
+      Object.hash(id, title, amount, transactionDate, transactionType);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Task &&
+      (other is Transaction &&
           other.id == this.id &&
           other.title == this.title &&
-          other.completed == this.completed);
+          other.amount == this.amount &&
+          other.transactionDate == this.transactionDate &&
+          other.transactionType == this.transactionType);
 }
 
-class TasksCompanion extends UpdateCompanion<Task> {
+class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<int> id;
   final Value<String> title;
-  final Value<bool> completed;
-  const TasksCompanion({
+  final Value<double> amount;
+  final Value<DateTime> transactionDate;
+  final Value<int> transactionType;
+  const TransactionsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
-    this.completed = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.transactionDate = const Value.absent(),
+    this.transactionType = const Value.absent(),
   });
-  TasksCompanion.insert({
+  TransactionsCompanion.insert({
     this.id = const Value.absent(),
     required String title,
-    this.completed = const Value.absent(),
-  }) : title = Value(title);
-  static Insertable<Task> custom({
+    required double amount,
+    this.transactionDate = const Value.absent(),
+    required int transactionType,
+  }) : title = Value(title),
+       amount = Value(amount),
+       transactionType = Value(transactionType);
+  static Insertable<Transaction> custom({
     Expression<int>? id,
     Expression<String>? title,
-    Expression<bool>? completed,
+    Expression<double>? amount,
+    Expression<DateTime>? transactionDate,
+    Expression<int>? transactionType,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
-      if (completed != null) 'completed': completed,
+      if (amount != null) 'amount': amount,
+      if (transactionDate != null) 'transaction_date': transactionDate,
+      if (transactionType != null) 'transaction_type': transactionType,
     });
   }
 
-  TasksCompanion copyWith({
+  TransactionsCompanion copyWith({
     Value<int>? id,
     Value<String>? title,
-    Value<bool>? completed,
+    Value<double>? amount,
+    Value<DateTime>? transactionDate,
+    Value<int>? transactionType,
   }) {
-    return TasksCompanion(
+    return TransactionsCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
-      completed: completed ?? this.completed,
+      amount: amount ?? this.amount,
+      transactionDate: transactionDate ?? this.transactionDate,
+      transactionType: transactionType ?? this.transactionType,
     );
   }
 
@@ -230,18 +340,26 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (title.present) {
       map['title'] = Variable<String>(title.value);
     }
-    if (completed.present) {
-      map['completed'] = Variable<bool>(completed.value);
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (transactionDate.present) {
+      map['transaction_date'] = Variable<DateTime>(transactionDate.value);
+    }
+    if (transactionType.present) {
+      map['transaction_type'] = Variable<int>(transactionType.value);
     }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('TasksCompanion(')
+    return (StringBuffer('TransactionsCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
-          ..write('completed: $completed')
+          ..write('amount: $amount, ')
+          ..write('transactionDate: $transactionDate, ')
+          ..write('transactionType: $transactionType')
           ..write(')'))
         .toString();
   }
@@ -250,29 +368,34 @@ class TasksCompanion extends UpdateCompanion<Task> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
-  late final $TasksTable tasks = $TasksTable(this);
+  late final $TransactionsTable transactions = $TransactionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [tasks];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [transactions];
 }
 
-typedef $$TasksTableCreateCompanionBuilder =
-    TasksCompanion Function({
+typedef $$TransactionsTableCreateCompanionBuilder =
+    TransactionsCompanion Function({
       Value<int> id,
       required String title,
-      Value<bool> completed,
+      required double amount,
+      Value<DateTime> transactionDate,
+      required int transactionType,
     });
-typedef $$TasksTableUpdateCompanionBuilder =
-    TasksCompanion Function({
+typedef $$TransactionsTableUpdateCompanionBuilder =
+    TransactionsCompanion Function({
       Value<int> id,
       Value<String> title,
-      Value<bool> completed,
+      Value<double> amount,
+      Value<DateTime> transactionDate,
+      Value<int> transactionType,
     });
 
-class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
-  $$TasksTableFilterComposer({
+class $$TransactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $TransactionsTable> {
+  $$TransactionsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -289,15 +412,25 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get completed => $composableBuilder(
-    column: $table.completed,
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get transactionDate => $composableBuilder(
+    column: $table.transactionDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get transactionType => $composableBuilder(
+    column: $table.transactionType,
     builder: (column) => ColumnFilters(column),
   );
 }
 
-class $$TasksTableOrderingComposer
-    extends Composer<_$AppDatabase, $TasksTable> {
-  $$TasksTableOrderingComposer({
+class $$TransactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TransactionsTable> {
+  $$TransactionsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -314,15 +447,25 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get completed => $composableBuilder(
-    column: $table.completed,
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get transactionDate => $composableBuilder(
+    column: $table.transactionDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get transactionType => $composableBuilder(
+    column: $table.transactionType,
     builder: (column) => ColumnOrderings(column),
   );
 }
 
-class $$TasksTableAnnotationComposer
-    extends Composer<_$AppDatabase, $TasksTable> {
-  $$TasksTableAnnotationComposer({
+class $$TransactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TransactionsTable> {
+  $$TransactionsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -335,51 +478,76 @@ class $$TasksTableAnnotationComposer
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
 
-  GeneratedColumn<bool> get completed =>
-      $composableBuilder(column: $table.completed, builder: (column) => column);
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get transactionDate => $composableBuilder(
+    column: $table.transactionDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get transactionType => $composableBuilder(
+    column: $table.transactionType,
+    builder: (column) => column,
+  );
 }
 
-class $$TasksTableTableManager
+class $$TransactionsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $TasksTable,
-          Task,
-          $$TasksTableFilterComposer,
-          $$TasksTableOrderingComposer,
-          $$TasksTableAnnotationComposer,
-          $$TasksTableCreateCompanionBuilder,
-          $$TasksTableUpdateCompanionBuilder,
-          (Task, BaseReferences<_$AppDatabase, $TasksTable, Task>),
-          Task,
+          $TransactionsTable,
+          Transaction,
+          $$TransactionsTableFilterComposer,
+          $$TransactionsTableOrderingComposer,
+          $$TransactionsTableAnnotationComposer,
+          $$TransactionsTableCreateCompanionBuilder,
+          $$TransactionsTableUpdateCompanionBuilder,
+          (
+            Transaction,
+            BaseReferences<_$AppDatabase, $TransactionsTable, Transaction>,
+          ),
+          Transaction,
           PrefetchHooks Function()
         > {
-  $$TasksTableTableManager(_$AppDatabase db, $TasksTable table)
+  $$TransactionsTableTableManager(_$AppDatabase db, $TransactionsTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$TasksTableFilterComposer($db: db, $table: table),
+              $$TransactionsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$TasksTableOrderingComposer($db: db, $table: table),
+              $$TransactionsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$TasksTableAnnotationComposer($db: db, $table: table),
+              $$TransactionsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> title = const Value.absent(),
-                Value<bool> completed = const Value.absent(),
-              }) => TasksCompanion(id: id, title: title, completed: completed),
+                Value<double> amount = const Value.absent(),
+                Value<DateTime> transactionDate = const Value.absent(),
+                Value<int> transactionType = const Value.absent(),
+              }) => TransactionsCompanion(
+                id: id,
+                title: title,
+                amount: amount,
+                transactionDate: transactionDate,
+                transactionType: transactionType,
+              ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String title,
-                Value<bool> completed = const Value.absent(),
-              }) => TasksCompanion.insert(
+                required double amount,
+                Value<DateTime> transactionDate = const Value.absent(),
+                required int transactionType,
+              }) => TransactionsCompanion.insert(
                 id: id,
                 title: title,
-                completed: completed,
+                amount: amount,
+                transactionDate: transactionDate,
+                transactionType: transactionType,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -389,24 +557,27 @@ class $$TasksTableTableManager
       );
 }
 
-typedef $$TasksTableProcessedTableManager =
+typedef $$TransactionsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $TasksTable,
-      Task,
-      $$TasksTableFilterComposer,
-      $$TasksTableOrderingComposer,
-      $$TasksTableAnnotationComposer,
-      $$TasksTableCreateCompanionBuilder,
-      $$TasksTableUpdateCompanionBuilder,
-      (Task, BaseReferences<_$AppDatabase, $TasksTable, Task>),
-      Task,
+      $TransactionsTable,
+      Transaction,
+      $$TransactionsTableFilterComposer,
+      $$TransactionsTableOrderingComposer,
+      $$TransactionsTableAnnotationComposer,
+      $$TransactionsTableCreateCompanionBuilder,
+      $$TransactionsTableUpdateCompanionBuilder,
+      (
+        Transaction,
+        BaseReferences<_$AppDatabase, $TransactionsTable, Transaction>,
+      ),
+      Transaction,
       PrefetchHooks Function()
     >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
-  $$TasksTableTableManager get tasks =>
-      $$TasksTableTableManager(_db, _db.tasks);
+  $$TransactionsTableTableManager get transactions =>
+      $$TransactionsTableTableManager(_db, _db.transactions);
 }
