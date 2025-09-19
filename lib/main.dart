@@ -110,7 +110,7 @@ class _HomePageState extends State<HomePage> {
                 }
                 final transactions = snapshot.data ?? [];
                 if (transactions.isEmpty) {
-                  return Center(child: Text('هیچ تراکنشی ثبت نشده است.'));
+                  return Center(child: Text(' تراکنشی ثبت نشده است.'));
                 }
 
                 return ListView.builder(
