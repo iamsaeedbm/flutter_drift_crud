@@ -1,61 +1,60 @@
-// file: lib/database.dart
-
-import 'dart:io';
-
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'dart:io';
 
-// این قسمت برای تولید کد اتوماتیک لازمه
 part 'database.g.dart';
 
-// تعریف جدول تراکنش‌ها
-class Transactions extends Table {
-  // شناسه اصلی که خودکار زیاد میشه
+// تعریف جدول هزینه‌ها
+@DataClassName('Expense')
+class Expenses extends Table {
   IntColumn get id => integer().autoIncrement()();
-  // عنوان تراکنش
-  TextColumn get title => text().withLength(min: 1, max: 50)();
-  // مبلغ تراکنش
   RealColumn get amount => real()();
-  // تاریخ تراکنش که موقع ثبت، زمان حال رو میگیره
-  DateTimeColumn get transactionDate =>
-      dateTime().clientDefault(() => DateTime.now())();
-  // نوع تراکنش: 0 برای هزینه، 1 برای درآمد
-  IntColumn get transactionType => integer()();
+  TextColumn get description => text().withLength(max: 255)();
+  DateTimeColumn get date => dateTime()();
 }
 
-// تعریف کلاس دیتابیس
-@DriftDatabase(tables: [Transactions])
+// تعریف جدول درآمدها
+@DataClassName('Income')
+class Incomes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  RealColumn get amount => real()();
+  TextColumn get description => text().withLength(max: 255)();
+  DateTimeColumn get date => dateTime()();
+}
+
+// تعریف دیتابیس
+@DriftDatabase(tables: [Expenses, Incomes])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
   int get schemaVersion => 1;
-  // --- توابع جدید ---
 
-  // تابعی برای گرفتن تمام تراکنش‌ها
-  Future<List<Transaction>> getAllTransactions() => select(transactions).get();
+  // عملیات CRUD برای هزینه‌ها
+  Future<List<Expense>> getAllExpenses() => select(expenses).get();
+  Future<int> addExpense(ExpensesCompanion expense) =>
+      into(expenses).insert(expense);
+  Future<bool> updateExpense(Expense expense) =>
+      update(expenses).replace(expense);
+  Future<int> deleteExpense(int id) =>
+      (delete(expenses)..where((tbl) => tbl.id.equals(id))).go();
 
-  // تابعی برای تماشای تمام تراکنش‌ها (به صورت Stream)
-  // با این تابع، هر تغییری در دیتابیس، لیست رو آپدیت میکنه
-  Stream<List<Transaction>> watchAllTransactions() =>
-      select(transactions).watch();
-
-  // تابعی برای اضافه کردن یک تراکنش جدید
-  Future<int> addTransaction(TransactionsCompanion entry) {
-    return into(transactions).insert(entry);
-  }
+  // عملیات CRUD برای درآمدها
+  Future<List<Income>> getAllIncomes() => select(incomes).get();
+  Future<int> addIncome(IncomesCompanion income) =>
+      into(incomes).insert(income);
+  Future<bool> updateIncome(Income income) => update(incomes).replace(income);
+  Future<int> deleteIncome(int id) =>
+      (delete(incomes)..where((tbl) => tbl.id.equals(id))).go();
 }
 
-// تابعی برای باز کردن و اتصال به دیتابیس
-LazyDatabase _openConnection() {
+// اتصال به دیتابیس
+QueryExecutor _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'db.sqlite'));
+    final file = File(p.join(dbFolder.path, 'finance_app.sqlite'));
     return NativeDatabase(file);
   });
 }
-
-// یک نمونه سراسری از دیتابیس برای دسترسی آسان
-final database = AppDatabase();
